@@ -13,8 +13,7 @@ const SERVER_PORT = 3000;
 // Map MAC addresses directly to passwords
 // Only MACs listed here are allowed to send WOL packets
 const MAC_CREDENTIALS = {
-    "AA:BB:CC:DD:EE:FF": "password1",
-    "11:22:33:44:55:66": "password2"
+    "D4:5D:64:B9:89:BD": "caca mou"
 };
 // ============================
 
