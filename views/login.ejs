@@ -1,0 +1,15 @@
+<h2>Login</h2>
+
+<% if (error) { %>
+    <blockquote style="border-left: 4px solid red;">
+        <strong><%= error %></strong>
+    </blockquote>
+<% } %>
+
+<form method="POST" action="/login">
+    <label>Username<br><input type="text" name="username" required> </label>
+
+    <label>Password<br><input type="password" name="password" required></label>
+
+    <button type="submit">Login</button>
+</form>

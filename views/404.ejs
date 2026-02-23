@@ -1,0 +1,17 @@
+<h2>404 – Page Not Found</h2>
+
+<p>
+    The page <code><%= url %></code> does not exist.
+</p>
+
+<hr>
+
+<% if (isAuthenticated) { %>
+    <p>
+        <a href="/dashboard">Go to Dashboard</a>
+    </p>
+<% } else { %>
+    <p>
+        <a href="/">Return to Home</a>
+    </p>
+<% } %>

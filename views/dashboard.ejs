@@ -1,0 +1,20 @@
+<h2>Wake a Device</h2>
+
+<p>Logged in as <strong><%= username %></strong></p>
+
+<% if (error) { %>
+    <blockquote style="border-left: 4px solid red;">
+        <strong><%= error %></strong>
+    </blockquote>
+<% } %>
+
+<form method="POST" action="/wake">
+    <label>Target MAC Address</label>
+    <input type="text" name="targetMac" placeholder="AA:BB:CC:DD:EE:FF" required>
+
+    <button type="submit">Send Wake-on-LAN Packet</button>
+</form>
+
+<p>
+    <a href="/logout">Logout</a>
+</p>
