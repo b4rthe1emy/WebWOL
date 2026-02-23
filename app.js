@@ -6,15 +6,11 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const wol = require('wake_on_lan');
+const fs = require("node:fs");
 
 // ====== CONFIGURATION ======
 const SERVER_PORT = 3000;
 
-// Map MAC addresses directly to passwords
-// Only MACs listed here are allowed to send WOL packets
-const MAC_CREDENTIALS = {
-    "D4:5D:64:B9:89:BD": "caca mou"
-};
 // ============================
 
 const app = express();
@@ -55,8 +51,8 @@ app.post('/login', (req, res) => {
 
     // Normalize MAC to uppercase
     targetMac = targetMac.toUpperCase();
-
-    if (MAC_CREDENTIALS[targetMac] && MAC_CREDENTIALS[targetMac] === password) {
+    const macCredentials = JSON.parse(fs.createWriteStream("macCredentials.json").toString());
+    if (macCredentials[targetMac] && macCredentials[targetMac] === password) {
         req.session.authenticated = true;
         req.session.targetMac = targetMac;
         res.redirect('/confirm');
