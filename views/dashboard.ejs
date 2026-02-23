@@ -1,6 +1,6 @@
 <h2>Wake a Device</h2>
 
-<p>Logged in as <strong><%= username %></strong></p>
+<p>Logged in as <strong><%= username %></strong> - <a href="/logout">Log out</a></p>
 
 <% if (error) { %>
     <blockquote style="border-left: 4px solid red;">
@@ -9,12 +9,237 @@
 <% } %>
 
 <form method="POST" action="/wake">
-    <label>Target MAC Address</label>
-    <input type="text" name="targetMac" placeholder="AA:BB:CC:DD:EE:FF" required>
+    <label for="targetMac">Target MAC Address</label>
 
-    <button type="submit">Send Wake-on-LAN Packet</button>
+    <select id="savedDevices">
+        <option value="" selected></option>
+        <% savedMacAddresses.forEach(device => { %>
+            <option value="<%= device.MAC %>">
+                <%= device.label %>
+            </option>
+        <% }) %>
+    </select>
+
+    <input type="text" id="targetMac" name="targetMac" placeholder="AA:BB:CC:DD:EE:FF" required>
+
+    <button type="button" id="favButton">Add to favorites</button>
+
+    <br>
+    <button type="submit" id="sendButton">Send Wake-on-LAN Packet</button>
 </form>
 
-<p>
-    <a href="/logout">Logout</a>
-</p>
+<!-- Modal -->
+<div id="favModal" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content:center;
+    align-items:center;
+">
+    <div style="background-color:inherit; padding:20px; border-radius:8px; max-width:400px; width:90%;">
+        <h3>Add Favorite Device</h3>
+        <label>Display Name</label>
+        <input type="text" id="favLabel" placeholder="My PC">
+        <label>MAC Address</label>
+        <input type="text" id="favMac" placeholder="AA:BB:CC:DD:EE:FF">
+        <div style="margin-top:15px; text-align:right;">
+            <button id="favCancel" type="button">Cancel</button>
+            <button id="favSave" type="button">Save</button>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="savedMacData"><%- JSON.stringify(savedMacAddresses) %></script>
+<script>
+    const dropdown = document.getElementById('savedDevices');
+    const macInput = document.getElementById('targetMac');
+    const favButton = document.getElementById('favButton');
+    const sendButton = document.getElementById('sendButton');
+    const form = document.querySelector('form');
+
+    const modal = document.getElementById('favModal');
+    const favLabelInput = document.getElementById('favLabel');
+    const favMacInput = document.getElementById('favMac');
+    const favCancel = document.getElementById('favCancel');
+    const favSave = document.getElementById('favSave');
+
+    const defaultOption = dropdown.querySelector('option[value=""]');
+
+    let savedMacs = JSON.parse(
+        document.getElementById('savedMacData').textContent
+    ).map(d => d.MAC.toUpperCase());
+
+    /* -------------------------
+       MAC Utilities
+    -------------------------- */
+
+    function normalizeMac(mac) {
+        return mac.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+    }
+
+    function formatMac(mac) {
+        const cleaned = normalizeMac(mac).substring(0, 12);
+        return cleaned.match(/.{1,2}/g)?.join(':') || '';
+    }
+
+    function isValidMac(mac) {
+        return /^[0-9A-F]{2}(:[0-9A-F]{2}){5}$/.test(mac);
+    }
+
+    /* -------------------------
+       UI State Helpers
+    -------------------------- */
+
+    function updateDropdownLabel() {
+        defaultOption.textContent =
+            savedMacs.length === 0
+                ? 'No Saved Devices'
+                : 'Saved Devices';
+    }
+
+    function updateFavoriteButton() {
+        const mac = macInput.value;
+        if (isValidMac(mac) && savedMacs.includes(mac)) {
+            favButton.textContent = 'Remove from favorites';
+        } else {
+            favButton.textContent = 'Add to favorites';
+        }
+    }
+
+    function updateSendButton() {
+        const mac = macInput.value;
+        sendButton.disabled = !isValidMac(mac);
+    }
+
+    function updateAllUI() {
+        updateFavoriteButton();
+        updateSendButton();
+    }
+
+    /* -------------------------
+       Initialization
+    -------------------------- */
+
+    updateDropdownLabel();
+    updateAllUI();
+
+    /* -------------------------
+       Dropdown → Input
+    -------------------------- */
+
+    dropdown.addEventListener('change', function () {
+        macInput.value = this.value;
+        updateAllUI();
+    });
+
+    /* -------------------------
+       MAC Input Handling
+    -------------------------- */
+
+    macInput.addEventListener('input', function () {
+        const formatted = formatMac(macInput.value);
+        macInput.value = formatted;
+
+        if (savedMacs.includes(formatted)) {
+            dropdown.value = formatted;
+        } else {
+            dropdown.value = "";
+        }
+
+        updateAllUI();
+    });
+
+    /* -------------------------
+       Prevent invalid form submit
+    -------------------------- */
+
+    form.addEventListener('submit', function (e) {
+        const mac = macInput.value;
+        if (!isValidMac(mac)) {
+            e.preventDefault();
+        } else {
+            macInput.value = normalizeMac(mac);
+        }
+    });
+
+    /* -------------------------
+       Add / Remove favorites
+    -------------------------- */
+
+    favButton.addEventListener('click', function () {
+        const mac = macInput.value;
+        if (!isValidMac(mac)) return;
+
+        if (savedMacs.includes(mac)) {
+
+            fetch('/favorites/remove', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({MAC: mac})
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        savedMacs = savedMacs.filter(m => m !== mac);
+                        dropdown.querySelector(`option[value="${mac}"]`)?.remove();
+                        dropdown.value = "";
+                        updateDropdownLabel();
+                        updateAllUI();
+                    }
+                });
+
+        } else {
+
+            favLabelInput.value = mac;
+            favMacInput.value = mac;
+            modal.style.display = 'flex';
+            favLabelInput.focus();
+        }
+    });
+
+    /* -------------------------
+       Modal Logic
+    -------------------------- */
+
+    favCancel.addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
+
+    favSave.addEventListener('click', () => {
+
+        const formatted = formatMac(favMacInput.value);
+        if (!isValidMac(formatted)) return;
+
+        const label = favLabelInput.value || formatted;
+
+        fetch('/favorites/add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({MAC: formatted, label})
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+
+                    savedMacs.push(formatted);
+
+                    const option = document.createElement('option');
+                    option.value = formatted;
+                    option.textContent = label;
+                    dropdown.appendChild(option);
+
+                    macInput.value = formatted;
+                    dropdown.value = formatted;
+
+                    updateDropdownLabel();
+                    updateAllUI();
+                }
+            });
+
+        modal.style.display = 'none';
+    });
+</script>
