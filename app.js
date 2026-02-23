@@ -51,7 +51,7 @@ app.post('/login', (req, res) => {
 
     // Normalize MAC to uppercase
     targetMac = targetMac.toUpperCase();
-    const macCredentials = JSON.parse(fs.createWriteStream("macCredentials.json").toString());
+    const macCredentials = JSON.parse(fs.readFileSync("data/macCredentials.json").toString());
     if (macCredentials[targetMac] && macCredentials[targetMac] === password) {
         req.session.authenticated = true;
         req.session.targetMac = targetMac;
