@@ -2,13 +2,21 @@
   "name": "WebWOL",
   "short_name": "WebWOL",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3367D6",
   "icons": [
     {
-      "src": "/public/icon.png",
+      "src": "/icon.png",
       "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/mobile-screenshot.png",
+      "sizes": "398x858",
       "type": "image/png"
     }
   ]
