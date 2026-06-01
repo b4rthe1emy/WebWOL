@@ -58,7 +58,7 @@ app.get('/', (req, res) => {
 // app.get('/public/*', (req, res) => {
 //     res.sendFile(path.join(__dirname, req.filename));
 // });
-app.use('/', express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Login handler
 app.post('/login', (req, res) => {
