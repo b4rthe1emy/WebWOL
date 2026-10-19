@@ -1,10 +1,11 @@
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const wol = require('wake_on_lan');
 const fs = require('node:fs');
 const path = require('node:path');
 const expressLayouts = require('express-ejs-layouts');
+require('dotenv').config();
+const AUTHORIZATION_KEY = process.env.AUTHORIZATION_KEY;
 
 const SERVER_PORT = 3000;
 
@@ -104,11 +105,15 @@ app.post('/wake', requireAuth, (req, res) => {
     const targetMac = req.body.targetMac.toUpperCase();
 
     try {
-        wol.wake(targetMac);
+        let result;
+        sendPacked(targetMac).then(r => result = r);
+
+        console.log("successfully sent to", targetMac);
 
         res.render('result', {
             title: 'Success',
-            targetMac
+            targetMac,
+            result
         });
     } catch (error) {
         res.status(500).render('dashboard', {
@@ -118,6 +123,26 @@ app.post('/wake', requireAuth, (req, res) => {
         });
     }
 });
+
+async function sendPacked(targetMac) {
+    // wol.wake(targetMac);
+
+    const url = 'https://10.0.0.254/api/wol/wol/set';
+    const options = {
+        method: 'POST',
+        headers: {
+            Authorization: AUTHORIZATION_KEY,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({'wake[mac]': targetMac, 'wake[interface]': 'wan'})
+    };
+
+    try {
+        return await fetch(url, options).then(r => JSON.stringify(r.json()));
+    } catch (error) {
+        return null;
+    }
+}
 
 // Add to favorites
 app.post('/favorites/add', requireAuth, (req, res) => {
